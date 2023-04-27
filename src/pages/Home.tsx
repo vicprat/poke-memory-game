@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import axios from 'axios';
 import {
   incrementTurns,
   incrementFails,
@@ -8,27 +9,23 @@ import {
   selectFails,
 } from '../store/gameSlice';
 import SingleCard from '../components/SingleCard';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
 
 type Card = {
     id: number;
     src: string;
     name: string;
     matched: boolean;
+    pokemonId: number;
   }
   
   function Home() {
-    const navigate = useNavigate()
     const [cardImages, setCardImages] = useState<Card[]>([])
     const dispatch = useDispatch();
     const turns = useSelector(selectTurns);
     const fails = useSelector(selectFails);
+    const navigate = useNavigate();
 
-    const winnerRedirect = () => {
-        navigate('/win')
-      }
   
     const [cards, setCards] = useState<Card[]>([])
     // const [turns, setTurns] = useState(0)
@@ -48,34 +45,47 @@ type Card = {
         return Array.from(numbers);
       };
 
-    //fetch rando card images
-    const fetchCardImages = async () => {
-      const { data } = await axios.get("https://pokeapi.co/api/v2/pokemon?limit=5");
-      const pokemon = data.results.map((poke: any) => ({
-        name: poke.name,
-        src: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${
-          poke.url.split("/")[6]
-        }.png`,
-        matched: false,
-      }));
-      setCardImages(pokemon);
-    };
-    
-    useEffect(() => {
-      fetchCardImages();
-    }, []);
-  
-    //shuffle the cards
-    const shuffleCards = () => {
-      const shuffledCards = [...cardImages, ...cardImages]
+          //shuffle the cards
+const shuffleCards = async () => {
+    await fetchCardImages(); // Fetch new card images before shuffling
+    const shuffledCards = [...cardImages, ...cardImages]
       .sort(() => Math.random() - 0.5)
-      .map((card) => ({...card, id: Math.random()}))
+      .map((card) => ({ ...card, id: Math.random() }));
   
-      setChoiceOne(null)
-      setChoiceTwo(null)
-      setCards(shuffledCards)
-        dispatch(resetGame())
-    }
+    setChoiceOne(null);
+    setChoiceTwo(null);
+    setCards(shuffledCards);
+    dispatch(resetGame());
+  };
+  
+
+    //fetch random card images
+    const fetchCardImages = async () => {
+        const randomNumbers = generateRandomNumbers(5, 151);
+        const requests = randomNumbers.map((number) =>
+          axios.get(`https://pokeapi.co/api/v2/pokemon/${number}`)
+        );
+      
+        try {
+          const responses = await Promise.all(requests);
+          const pokemon = responses.map((response) => {
+            const { id, name, sprites } = response.data;
+            return {
+              id: Math.random(),
+              pokemonId: id, // Store the actual Pokémon ID here
+              name,
+              src: sprites.front_default,
+              matched: false,
+            };
+          });
+      
+          setCardImages(pokemon);
+        } catch (error) {
+          console.error('Error fetching random Pokémon:', error);
+        }
+      };
+      
+
    
     //handle a choice
     const handleChoice = (card: Card) => {
@@ -124,13 +134,21 @@ type Card = {
     useEffect(() => {
         const matchedCards = cards.filter((card) => card.matched).length;
         if (matchedCards === cards.length && cards.length > 0 && fails < 5) {
-            winnerRedirect()
+          const handleWin = (pokemonId: number) => {
+            navigate(`/pokemon/${pokemonId}`);
+          };
+          setCards((prevCards) =>
+            prevCards.map((card) => ({
+              ...card,
+              onWin: () => handleWin(card.pokemonId), // Pass the actual Pokémon ID here
+            })),
+          );
         } else if (fails >= 5) {
           alert('Perdiste. ¡Inténtalo de nuevo!');
           dispatch(resetGame());
           shuffleCards();
         }
-      }, [cards, fails, dispatch]);
+      }, [cards, fails, dispatch, navigate]);
   
     return (
       <>
@@ -140,13 +158,14 @@ type Card = {
         <button onClick={shuffleCards} className="mt-4 rounded-md bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">Start a new game</button>
        
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-8">
-          {cards.map((card) => (
+        {cards.map((card) => (
             <SingleCard 
-            key={card.id} 
-            card={card}
-            handleChoice={handleChoice}
-            flipped={card === choiceOne || card === choiceTwo || card.matched}
-            disabled={disabled}
+              key={card.id} 
+              card={card}
+              handleChoice={handleChoice}
+              flipped={card === choiceOne || card === choiceTwo || card.matched}
+              disabled={disabled}
+              onWin={card.onWin} 
             />
           ))}
         </div>
