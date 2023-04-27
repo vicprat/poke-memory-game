@@ -9,112 +9,111 @@ import {
   selectFails,
 } from '../store/gameSlice';
 import SingleCard from '../components/SingleCard';
-import { useNavigate } from 'react-router-dom';
 
-type Card = {
-    id: number;
-    src: string;
-    name: string;
-    matched: boolean;
-    pokemonId: number;
-  }
-  
-  function Home() {
-    const [cardImages, setCardImages] = useState<Card[]>([])
-    const dispatch = useDispatch();
-    const turns = useSelector(selectTurns);
-    const fails = useSelector(selectFails);
-    const navigate = useNavigate();
+export type Card = {
+  id: number;
+  src: string;
+  name: string;
+  matched: boolean;
+  pokemonId: number;
+};
 
-  
-    const [cards, setCards] = useState<Card[]>([])
-    // const [turns, setTurns] = useState(0)
-    const [choiceOne, setChoiceOne] = useState<Card | null>(null)
-    const [choiceTwo, setChoiceTwo] = useState<Card | null>(null)
-    const [disabled, setDisabled] = useState(false)
-  
+function Home() {
+  const [cardImages, setCardImages] = useState<Card[]>([]);
+  const [gameWon, setGameWon] = useState(false);
+  const dispatch = useDispatch();
+  const turns = useSelector(selectTurns);
+  const fails = useSelector(selectFails);
 
-    const generateRandomNumbers = (count: number, max: number) => {
-        const numbers = new Set<number>();
-      
-        while (numbers.size < count) {
-          const randomNumber = Math.floor(Math.random() * max) + 1;
-          numbers.add(randomNumber);
-        }
-      
-        return Array.from(numbers);
-      };
+  const [cards, setCards] = useState<Card[]>([]);
+  const [choiceOne, setChoiceOne] = useState<Card | null>(null);
+  const [choiceTwo, setChoiceTwo] = useState<Card | null>(null);
+  const [disabled, setDisabled] = useState(false);
 
-          //shuffle the cards
-const shuffleCards = async () => {
-    await fetchCardImages(); // Fetch new card images before shuffling
+  const generateRandomNumbers = (count: number, max: number) => {
+    const numbers = new Set<number>();
+
+    while (numbers.size < count) {
+      const randomNumber = Math.floor(Math.random() * max) + 1;
+      numbers.add(randomNumber);
+    }
+
+    return Array.from(numbers);
+  };
+
+  // Shuffle the cards
+  const shuffleCards = async () => {
+    if (!gameWon) {
+      await fetchCardImages(); // Fetch new card images before shuffling only if the game is not won
+    }
     const shuffledCards = [...cardImages, ...cardImages]
       .sort(() => Math.random() - 0.5)
       .map((card) => ({ ...card, id: Math.random() }));
-  
+
     setChoiceOne(null);
     setChoiceTwo(null);
     setCards(shuffledCards);
     dispatch(resetGame());
   };
-  
 
-    //fetch random card images
-    const fetchCardImages = async () => {
-        const randomNumbers = generateRandomNumbers(5, 151);
-        const requests = randomNumbers.map((number) =>
-          axios.get(`https://pokeapi.co/api/v2/pokemon/${number}`)
-        );
-      
-        try {
-          const responses = await Promise.all(requests);
-          const pokemon = responses.map((response) => {
-            const { id, name, sprites } = response.data;
-            return {
-              id: Math.random(),
-              pokemonId: id, // Store the actual Pokémon ID here
-              name,
-              src: sprites.front_default,
-              matched: false,
-            };
-          });
-      
-          setCardImages(pokemon);
-        } catch (error) {
-          console.error('Error fetching random Pokémon:', error);
-        }
-      };
-      
+  // Fetch random card images
+  const fetchCardImages = async () => {
+    const randomNumbers = generateRandomNumbers(5, 151);
+    const requests = randomNumbers.map((number) =>
+      axios.get(`https://pokeapi.co/api/v2/pokemon/${number}`)
+    );
 
-   
-    //handle a choice
-    const handleChoice = (card: Card) => {
-      choiceOne ? setChoiceTwo(card) : setChoiceOne(card)
+    try {
+      const responses = await Promise.all(requests);
+      const pokemon = responses.map((response) => {
+        const { id, name, sprites } = response.data;
+        return {
+          id: Math.random(),
+          pokemonId: id,
+          name,
+          src: sprites.front_default,
+          matched: false,
+        };
+      });
+
+      setCardImages(pokemon);
+    } catch (error) {
+      console.error('Error fetching random Pokémon:', error);
     }
-  
-    //compare 2 selected cards
-    useEffect(() => {
-      if (choiceOne && choiceTwo) {
-        setDisabled(true);
-        if (choiceOne.name === choiceTwo.name) {
-          setCards((prevCards) => {
-            return prevCards.map((card) => {
-              if (card.name === choiceOne.name) {
-                return { ...card, matched: true };
-              } else {
-                return card;
-              }
-            });
+  };
+
+  // Handle a choice
+  const handleChoice = (card: Card) => {
+    choiceOne ? setChoiceTwo(card) : setChoiceOne(card);
+  };
+
+  useEffect(() => {
+    shuffleCards();
+  }, []);
+
+  // Compare 2 selected cards
+  useEffect(() => {
+    if (choiceOne && choiceTwo) {
+      setDisabled(true);
+      if (choiceOne.name === choiceTwo.name) {
+        setCards((prevCards) => {
+          return prevCards.map((card) => {
+            if (card.name === choiceOne.name) {
+              return { ...card, matched: true };
+            } else {
+              return card;
+            }
           });
+        });
+        resetTurn();
+      } else {
+        setTimeout(() => {
           resetTurn();
-        } else {
-          setTimeout(() => {
-            resetTurn();
-            dispatch(incrementFails());
-          }, 1000);
-        }
+          dispatch(incrementFails());
+        }, 1000);
       }
-    }, [choiceOne, choiceTwo, dispatch]);
+    }
+  }, [choiceOne, choiceTwo, dispatch]);
   
     console.log(cards)
   
@@ -126,29 +125,18 @@ const shuffleCards = async () => {
     setDisabled(false);
   };
   
-    //start a new game on first render
+// Check if the game is won      
     useEffect(() => {
-      shuffleCards()
-    }, [])
+    const matchedCards = cards.filter((card) => card.matched).length;
+    if (matchedCards === cards.length && cards.length > 0 && fails < 5) {
+        alert('¡Has ganado! Ahora puedes elegir una tarjeta para conocer los detalles del Pokémon.');
+        setGameWon(true);
+    } else if (fails >= 5) {
+        alert('Perdiste. ¡Inténtalo de nuevo!');
+        dispatch(resetGame());
+    }
+    }, [cards, fails, dispatch]);
 
-    useEffect(() => {
-        const matchedCards = cards.filter((card) => card.matched).length;
-        if (matchedCards === cards.length && cards.length > 0 && fails < 5) {
-          const handleWin = (pokemonId: number) => {
-            navigate(`/pokemon/${pokemonId}`);
-          };
-          setCards((prevCards) =>
-            prevCards.map((card) => ({
-              ...card,
-              onWin: () => handleWin(card.pokemonId), // Pass the actual Pokémon ID here
-            })),
-          );
-        } else if (fails >= 5) {
-          alert('Perdiste. ¡Inténtalo de nuevo!');
-          dispatch(resetGame());
-          shuffleCards();
-        }
-      }, [cards, fails, dispatch, navigate]);
   
     return (
       <>
@@ -159,15 +147,15 @@ const shuffleCards = async () => {
        
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-8">
         {cards.map((card) => (
-            <SingleCard 
-              key={card.id} 
-              card={card}
-              handleChoice={handleChoice}
-              flipped={card === choiceOne || card === choiceTwo || card.matched}
-              disabled={disabled}
-              onWin={card.onWin} 
-            />
-          ))}
+  <SingleCard
+    key={card.id}
+    card={card}
+    handleChoice={handleChoice}
+    flipped={card === choiceOne || card === choiceTwo || card.matched}
+    disabled={disabled}
+    gameWon={gameWon}
+  />
+))}
         </div>
             <div className="mt-8">
             <p>Turns: {turns}</p>
