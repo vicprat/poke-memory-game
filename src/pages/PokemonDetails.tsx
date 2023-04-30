@@ -2,6 +2,9 @@ import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import Layout from '../layout/Layout';
+import Button from '../components/Button';
+import Title from '../components/Title';
 
 type PokemonDetailsParams = {
   id: string;
@@ -42,18 +45,18 @@ const PokemonDetails = () => {
   }
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
-     <div className='block text-center'>
+    <Layout>
       <img className='w-full h-64' src={pokemonData.sprites.front_default} alt={pokemonData.name} />
-      <h1 className='text-2xl font-semibold text-gray-600 capitalize'>{pokemonData.name}</h1>
+
+      <Title text={pokemonData.name} />
         <p className='text-gray-600'>Height: {pokemonData.heitght}</p>
         <p className='text-gray-600'>Weight: {pokemonData.weight}</p>
         <p className='text-gray-600'>Type: {pokemonData.types.map((type) => type.type.name).join(', ')}</p>
+
         <Link to='/'>
-        <button className="mt-4 rounded-md bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">Start a new game</button>
+          <Button>Start a new game</Button>
         </Link>
-     </div>
-    </div>
+    </Layout>
   );
 };
 
