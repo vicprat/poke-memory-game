@@ -1,7 +1,4 @@
 import { useParams, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-
 import { Pokemon, PokemonDetailsParams } from '../types';
 
 import Layout from '../layout/Layout';
@@ -9,32 +6,37 @@ import Button from '../components/Button';
 import Title from '../components/Title';
 import LoadingSpinner from '../components/LoadingSpinner';
 
+import { useFetch } from '../hooks/useFetch';
+
 const PokemonDetails = () => {
   const { id } = useParams<PokemonDetailsParams>();
-  const [pokemonData, setPokemonData] = useState<Pokemon | null>(null)
 
-  useEffect(() => {
-    const fetchPokemonData = async () => {
-      try {
-        const response = await axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`);
-        setPokemonData(response.data);
-      } catch (error) {
-        console.error('Error fetching Pokémon data:', error);
-      }
-    };
+  const { data: pokemonData, loading, error } = useFetch<Pokemon | null>(`https://pokeapi.co/api/v2/pokemon/${id}`);
 
-    fetchPokemonData();
-  }, [id]);
+  if (loading) {
+    return <LoadingSpinner/>;
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <p>Error fetching Pokémon data: {error.message}</p>
+        <Link to='/'>
+          <Button>Start a new game</Button>
+        </Link>
+      </Layout>
+    );
+  }
 
   if (!pokemonData) {
-    return <LoadingSpinner/>;
+    return null;
   }
 
   return (
     <Layout>
-    <img className='w-full h-64' src={pokemonData.sprites.front_default} alt={pokemonData.name} />
+      <img className='w-full h-64' src={pokemonData.sprites.front_default} alt={pokemonData.name} />
 
-    <Title text={pokemonData.name} />
+      <Title text={pokemonData.name} />
       <p className='text-gray-600'>Height: {pokemonData.height}</p>
       <p className='text-gray-600'>Weight: {pokemonData.weight}</p>
       <p className='text-gray-600'>Type: {pokemonData.types.map((type) => type.type.name).join(', ')}</p>
@@ -42,7 +44,7 @@ const PokemonDetails = () => {
       <Link to='/'>
         <Button>Start a new game</Button>
       </Link>
-  </Layout>
+    </Layout>
   );
 };
 
