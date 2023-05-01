@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import { Cards } from '../../types';
 
 const INITIAL_STATE = {
+  gameStarted: false,
   turns: 0,
   fails: 0,
   cards: [] as Cards,
@@ -17,6 +18,9 @@ export const gameSlice = createSlice({
   name: 'game',
   initialState: INITIAL_STATE,
   reducers: {
+    setGameStarted: (state) => {
+      state.gameStarted = true;
+    },
     incrementTurns: (state) => {
       state.turns += 1;
     },
@@ -26,6 +30,7 @@ export const gameSlice = createSlice({
     resetGame: (state) => {
       state.turns = 0;
       state.fails = 0;
+      state.cards = [];
     },
     setCards: (state, action) => {
       state.cards = action.payload;
@@ -62,6 +67,7 @@ export const {
   setGameWon,
   setIsModalOpen,
   setModalMessage,
+  setGameStarted
 } = gameSlice.actions;
 
 export default gameSlice.reducer;

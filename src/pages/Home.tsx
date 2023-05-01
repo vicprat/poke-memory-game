@@ -17,8 +17,20 @@ import {
   incrementTurns,
   incrementFails,
   resetGame,
+  setIsModalOpen,
+  setModalMessage, 
+  setGameStarted,
+  setGameWon,
+  setDisabled
 } from '../store/game/gameSlice';
-import { selectTurns, selectFails } from '../store/game/gameSelector'
+import { 
+  selectTurns, 
+  selectFails, 
+  selectIsModalOpen, 
+  selectModalMessage, 
+  selectGameWon,
+  selectDisabled
+} from '../store/game/gameSelector'
 
 function Home() {
   const dispatch = useDispatch();
@@ -26,16 +38,15 @@ function Home() {
   const { data: cardImages, loading } = useRandomFetch(5, 1000);
   const [cards, setCards] = useState<Card[]>([]);
 // Game Logic
-  const [gameStarted, setGameStarted] = useState(false);
   const turns = useSelector(selectTurns);
   const fails = useSelector(selectFails);
-  const [gameWon, setGameWon] = useState(false);
+  const gameWon = useSelector(selectGameWon);
+  const disabled = useSelector(selectDisabled);
   const [choiceOne, setChoiceOne] = useState<Card | null>(null);
   const [choiceTwo, setChoiceTwo] = useState<Card | null>(null);
-  const [disabled, setDisabled] = useState(false);
 // Modal Logic
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
+  const isModalOpen = useSelector(selectIsModalOpen);
+  const modalMessage = useSelector(selectModalMessage);
 
 // Shuffle the cards
 const shuffleCards = async () => {
@@ -43,13 +54,13 @@ const shuffleCards = async () => {
     const shuffledCards = [...cardImages, ...cardImages]
       .sort(() => Math.random() - 0.5)
       .map((card) => ({ ...card, id: Math.random() }));
-
+    
     setChoiceOne(null);
     setChoiceTwo(null);
     setCards(shuffledCards);
-    setDisabled(false);
+    dispatch(setDisabled(false))
     dispatch(resetGame());
-    setGameStarted(true);
+    dispatch(setGameStarted());
   }
 };
 
@@ -61,7 +72,7 @@ const shuffleCards = async () => {
   // Compare 2 selected cards
   useEffect(() => {
     if (choiceOne && choiceTwo) {
-      setDisabled(true);
+      dispatch(setDisabled(true))
       if (choiceOne.name === choiceTwo.name) {
         setCards((prevCards) => {
           return prevCards.map((card) => {
@@ -89,7 +100,7 @@ const shuffleCards = async () => {
       setChoiceOne(null);
       setChoiceTwo(null);
       dispatch(incrementTurns());
-      setDisabled(false);
+      dispatch(setDisabled(false))
     };
   
   // Check if the game is won
@@ -104,21 +115,22 @@ const shuffleCards = async () => {
           y: 0.6,
         },
       });
-      setModalMessage('You won! Congratulations! Click a card to get more details 🎉');
-      setIsModalOpen(true);
-      setGameWon(true);
+      dispatch(setModalMessage('You won! Congratulations! Click a card to get more details 🎉'));
+      dispatch(setIsModalOpen(true));
+      dispatch(setGameWon(true));
     } else if (fails >= 5) {
-      setModalMessage('Perdiste. ¡Inténtalo de nuevo!');
-      setIsModalOpen(true);
-      setDisabled(true);
+      dispatch(setModalMessage('You lost! Try again'));
+      dispatch(setIsModalOpen(true));
+      dispatch(setDisabled(true))
     }
   }, [cards, fails, dispatch]);
 
-  // Close modal
+  // // Close modal
   const closeModal = () => {
-    setIsModalOpen(false);
+    dispatch(setIsModalOpen(false));
   };
-    return (
+
+  return (
       <Layout>
         <Title text='Pokemon memory game' />
         <Button onClick={shuffleCards}>Start a new game</Button>
@@ -142,8 +154,8 @@ const shuffleCards = async () => {
           <p>Turns: {turns}</p>
         </div>
         {isModalOpen && (
-            <Modal onClose={closeModal}>{modalMessage}</Modal>
-          )}
+  <Modal onClose={closeModal}>{modalMessage}</Modal>
+)}
     </Layout>
     )
   }
