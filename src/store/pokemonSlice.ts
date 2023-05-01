@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { PokemonState } from '../types';
+import { PokemonState, } from '../types';
 
 const initialState: PokemonState = {
     data: null,
@@ -11,8 +11,8 @@ const initialState: PokemonState = {
 
 export const fetchPokemonData = createAsyncThunk(
     'pokemon/fetchPokemonData',
-    async (id: string) => {
-        const response = await axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`);
+    async (pokemon) => {
+        const response = await axios.get(`https://pokeapi.co/api/v2/pokemon/${pokemon}`)
         return response.data;
     }
 );
