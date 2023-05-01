@@ -10,6 +10,7 @@ import { fetchPokemonData } from '../store/pokemonSlice';
 import Layout from '../layout/Layout';
 import Button from '../components/Button';
 import Title from '../components/Title';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const PokemonDetails = () => {
   const dispatch = useDispatch();
@@ -24,7 +25,7 @@ const PokemonDetails = () => {
   }, [id, dispatch]);
 
   if (status === 'loading' || status === 'idle') {
-    return <Layout><Title text='Loading'/></Layout>;
+    return <LoadingSpinner />;
   }
 
   if (status === 'failed') {

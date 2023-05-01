@@ -16,6 +16,7 @@ import {
   resetGame,
 } from '../store/game/gameSlice';
 import { selectTurns, selectFails } from '../store/game/gameSelector'
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export type Card = {
   id: number;
@@ -30,6 +31,8 @@ function Home() {
 
   const [cardImages, setCardImages] = useState<Card[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const turns = useSelector(selectTurns);
 
   const [gameWon, setGameWon] = useState(false);
@@ -52,47 +55,52 @@ const [modalMessage, setModalMessage] = useState('');
     return Array.from(numbers);
   };
 
-  // Shuffle the cards
-  const shuffleCards = async () => {
-    if (!gameWon) {
-      await fetchCardImages(); // Fetch new card images before shuffling only if the game is not won
-    }
-    const shuffledCards = [...cardImages, ...cardImages]
-      .sort(() => Math.random() - 0.5)
-      .map((card) => ({ ...card, id: Math.random() }));
+// Fetch random card images
+const fetchCardImages = async () => {
+  setLoading(true); 
 
-    setChoiceOne(null);
-    setChoiceTwo(null);
-    setCards(shuffledCards);
-    setDisabled(false);
-    dispatch(resetGame());
-  };
+  const randomNumbers = generateRandomNumbers(5, 1000);
+  const requests = randomNumbers.map((number) =>
+    axios.get(`https://pokeapi.co/api/v2/pokemon/${number}`)
+  );
 
-  // Fetch random card images
-  const fetchCardImages = async () => {
-    const randomNumbers = generateRandomNumbers(5, 1000);
-    const requests = randomNumbers.map((number) =>
-      axios.get(`https://pokeapi.co/api/v2/pokemon/${number}`)
-    );
+  try {
+    const responses = await Promise.all(requests);
+    const pokemon = responses.map((response) => {
+      const { id, name, sprites } = response.data;
+      return {
+        id: Math.random(),
+        pokemonId: id,
+        name,
+        src: sprites.front_default,
+        matched: false,
+      };
+    });
 
-    try {
-      const responses = await Promise.all(requests);
-      const pokemon = responses.map((response) => {
-        const { id, name, sprites } = response.data;
-        return {
-          id: Math.random(),
-          pokemonId: id,
-          name,
-          src: sprites.front_default,
-          matched: false,
-        };
-      });
+    setCardImages(pokemon);
+  } catch (error) {
+    console.error('Error fetching random Pokémon:', error);
+  } finally {
+    setLoading(false); 
+  }
+};
 
-      setCardImages(pokemon);
-    } catch (error) {
-      console.error('Error fetching random Pokémon:', error);
-    }
-  };
+// Shuffle the cards
+const shuffleCards = async () => {
+  if (!gameWon) {
+    await fetchCardImages(); 
+  }
+
+  const shuffledCards = [...cardImages, ...cardImages]
+    .sort(() => Math.random() - 0.5)
+    .map((card) => ({ ...card, id: Math.random() }));
+
+  setChoiceOne(null);
+  setChoiceTwo(null);
+  setCards(shuffledCards);
+  setDisabled(false);
+  dispatch(resetGame());
+};
 
   // Handle a choice
   const handleChoice = (card: Card) => {
@@ -167,34 +175,36 @@ const closeModal = () => {
     return (
       <Layout>
 
-        <Title text='Pokemon memory game' />
-
-        <Button onClick={shuffleCards} >Start a new game</Button>     
-          
-        <GridContainer >
-        {cards.map((card) => (
-          <SingleCard
-            key={card.id}
-            card={card}
-            handleChoice={handleChoice}
-            flipped={card === choiceOne || card === choiceTwo || card.matched}
-            disabled={disabled}
-            gameWon={gameWon}
+      <Title text='Pokemon memory game' />
+  
+      <Button onClick={shuffleCards}>Start a new game</Button>
+  
+      {loading ? (
+        <LoadingSpinner />
+      ) : (
+        <GridContainer>
+          {cards.map((card) => (
+            <SingleCard
+              key={card.id}
+              card={card}
+              handleChoice={handleChoice}
+              flipped={card === choiceOne || card === choiceTwo || card.matched}
+              disabled={disabled}
+              gameWon={gameWon}
             />
-        ))}
+          ))}
         </GridContainer>
-
-        <div className="mt-8">
+      )}
+  
+      <div className="mt-8">
         <p>Turns: {turns}</p>
-        </div>    
-
-        {isModalOpen && (
-        <Modal onClose={closeModal}>
-          {modalMessage}
-        </Modal>
-    )}
-
-      </Layout>
+      </div>
+  
+      {isModalOpen && (
+        <Modal onClose={closeModal}>{modalMessage}</Modal>
+      )}
+  
+    </Layout>
     )
   }
   
