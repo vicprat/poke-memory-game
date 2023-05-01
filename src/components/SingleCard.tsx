@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../pages/Home';
+import { Card } from '../types';
 
 type CardProps = {
   card: {

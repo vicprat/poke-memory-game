@@ -1,47 +1,38 @@
 import { useParams } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+
+import { PokemonDetailsParams } from '../types';
+import { RootState } from '../store/store';
+import { fetchPokemonData } from '../store/pokemonSlice';
+
 import Layout from '../layout/Layout';
 import Button from '../components/Button';
 import Title from '../components/Title';
 
-type PokemonDetailsParams = {
-  id: string;
-};
-interface Pokemon {
-    name: string;
-    sprites: {
-      front_default: string;
-    };
-    heitght: number;
-    weight: number;
-    types: {
-        type: {
-            name: string;
-        }
-    }[];
-  }
-
 const PokemonDetails = () => {
+  const dispatch = useDispatch();
+
   const { id } = useParams<PokemonDetailsParams>();
-  const [pokemonData, setPokemonData] = useState<Pokemon | null>(null)
+  const pokemonData = useSelector((state: RootState) => state.pokemon.data);
+  const status = useSelector((state: RootState) => state.pokemon.status);
+  const error = useSelector((state: RootState) => state.pokemon.error);
 
   useEffect(() => {
-    const fetchPokemonData = async () => {
-      try {
-        const response = await axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`);
-        setPokemonData(response.data);
-      } catch (error) {
-        console.error('Error fetching Pokémon data:', error);
-      }
-    };
+    dispatch(fetchPokemonData(id));
+  }, [id, dispatch]);
 
-    fetchPokemonData();
-  }, [id]);
+  if (status === 'loading' || status === 'idle') {
+    return <Layout><Title text='Loading'/></Layout>;
+  }
+
+  if (status === 'failed') {
+    return <Layout><Title text={`Error: ${error}`}/></Layout>;
+  }
 
   if (!pokemonData) {
-    return <div>Loading...</div>;
+    return null;
   }
 
   return (
@@ -49,7 +40,7 @@ const PokemonDetails = () => {
       <img className='w-full h-64' src={pokemonData.sprites.front_default} alt={pokemonData.name} />
 
       <Title text={pokemonData.name} />
-        <p className='text-gray-600'>Height: {pokemonData.heitght}</p>
+        <p className='text-gray-600'>Height: {pokemonData.height}</p>
         <p className='text-gray-600'>Weight: {pokemonData.weight}</p>
         <p className='text-gray-600'>Type: {pokemonData.types.map((type) => type.type.name).join(', ')}</p>
 

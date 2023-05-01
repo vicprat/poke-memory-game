@@ -14,9 +14,8 @@ import {
   incrementTurns,
   incrementFails,
   resetGame,
-  selectTurns,
-  selectFails,
-} from '../store/gameSlice';
+} from '../store/game/gameSlice';
+import { selectTurns, selectFails } from '../store/game/gameSelector'
 
 export type Card = {
   id: number;
@@ -65,12 +64,13 @@ const [modalMessage, setModalMessage] = useState('');
     setChoiceOne(null);
     setChoiceTwo(null);
     setCards(shuffledCards);
+    setDisabled(false);
     dispatch(resetGame());
   };
 
   // Fetch random card images
   const fetchCardImages = async () => {
-    const randomNumbers = generateRandomNumbers(5, 151);
+    const randomNumbers = generateRandomNumbers(5, 1000);
     const requests = randomNumbers.map((number) =>
       axios.get(`https://pokeapi.co/api/v2/pokemon/${number}`)
     );
