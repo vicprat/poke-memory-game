@@ -1,13 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { Cards } from '../../types';
+import { Card } from '../../types';
 
 const INITIAL_STATE = {
   gameStarted: false,
   turns: 0,
   fails: 0,
-  cards: [] as Cards,
-  choiceOne: null,
-  choiceTwo: null,
+  cards: [] as Card[],
+  choiceOne: null as Card | null,
+  choiceTwo: null as Card | null,
   disabled: false,
   gameWon: false,
   isModalOpen: false,
@@ -32,7 +32,7 @@ export const gameSlice = createSlice({
       state.fails = 0;
       state.cards = [];
     },
-    setCards: (state, action) => {
+    updateCards: (state, action) => {
       state.cards = action.payload;
     },
     setChoiceOne: (state, action) => {
@@ -60,7 +60,7 @@ export const {
   incrementTurns,
   incrementFails,
   resetGame,
-  setCards,
+  updateCards,
   setChoiceOne,
   setChoiceTwo,
   setDisabled,
