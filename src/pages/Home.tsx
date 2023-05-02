@@ -164,12 +164,12 @@ function Home() {
       <Title text='Select difficulty' />
       <div className='grid grid-cols-3 gap-4'>
         <Button onClick={() => shuffleCards({ count: 4, max: 1000 })}>
-          4{" "}
+          Easy
         </Button>
         <Button onClick={() => shuffleCards({ count: 5, max: 1000 })}>
-          5{" "}
+          Normal
         </Button>
-        <Button onClick={() => shuffleCards({ count: 8, max: 1000 })}>8</Button>
+        <Button onClick={() => shuffleCards({ count: 8, max: 1000 })}>Hard</Button>
       </div>
       {loading ? (
         <LoadingSpinner />
